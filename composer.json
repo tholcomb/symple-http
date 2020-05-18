@@ -1,0 +1,34 @@
+{
+    "name": "tholcomb/symple-http",
+    "description": "HTTP component of the Symple framework",
+    "type": "library",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Tyler Holcomb",
+            "email": "tyler@tholcomb.com"
+        }
+    ],
+    "minimum-stability": "stable",
+    "require": {
+        "php": ">=7.2",
+        "ext-json": "*",
+        "tholcomb/symple-core": "^1.0",
+        "tholcomb/symple-event": "^1.0",
+        "tholcomb/symple-logger": "^1.0",
+        "doctrine/annotations": "^1.8",
+        "doctrine/cache": "^1.10",
+        "symfony/config": "^5.0",
+        "symfony/http-kernel": "^5.0",
+        "symfony/routing": "^5.0"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^8.5",
+        "tholcomb/symple-twig": "^1.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Tholcomb\\Symple\\Http\\": ""
+        }
+    }
+}
