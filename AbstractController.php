@@ -12,11 +12,13 @@ namespace Tholcomb\Symple\Http;
 
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Twig\Environment;
 use Twig\Error\Error;
 
 abstract class AbstractController {
 	private $twig;
+	private $url_generator;
 
 	protected function json($data = null, int $code = Response::HTTP_OK, array $headers = []): JsonResponse
 	{
@@ -51,5 +53,27 @@ abstract class AbstractController {
 			throw new \LogicException('Did not get Twig Environment');
 		}
 		return $this->twig;
+	}
+
+	protected function url(string $route, array $params = []): string
+	{
+		return $this->getUrlGenerator()->generate($route, $params);
+	}
+
+	/**
+	 * @param UrlGeneratorInterface|callable $urlGenerator
+	 */
+	public function setUrlGenerator($urlGenerator): void
+	{
+		$this->url_generator = $urlGenerator;
+	}
+
+	protected function getUrlGenerator(): UrlGeneratorInterface
+	{
+		if (is_callable($this->url_generator)) $this->url_generator = call_user_func($this->url_generator);
+		if (!$this->url_generator instanceof UrlGeneratorInterface) {
+			throw new \LogicException('Did not get ' . UrlGeneratorInterface::class);
+		}
+		return $this->url_generator;
 	}
 }

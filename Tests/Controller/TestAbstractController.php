@@ -27,6 +27,14 @@ class TestAbstractController extends AbstractController {
 	}
 
 	/**
+	 * @Route("/urlGen", name="url-gen")
+	 */
+	public function testUrlGen(): Response
+	{
+		return $this->json($this->url('url-gen'));
+	}
+
+	/**
 	 * @Route("/{argument}")
 	 */
 	public function testRender($argument): Response

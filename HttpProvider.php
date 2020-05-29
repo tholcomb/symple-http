@@ -195,6 +195,7 @@ class HttpProvider extends AbstractProvider {
 		if (class_exists(TwigProvider::class) && TwigProvider::isRegistered($c)) {
 			$ctrl->setTwig(function () use ($c) { return TwigProvider::getEnvironment($c); });
 		}
+		$ctrl->setUrlGenerator(function () use ($c) { return $c[self::KEY_URL_GENERATOR]; });
 	}
 
 	public static function addController(Container $c, string $class, callable $definition): void

@@ -14,6 +14,7 @@ use PHPUnit\Framework\TestCase;
 use Pimple\Container;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Tholcomb\Symple\Http\HttpProvider;
 use Tholcomb\Symple\Http\Tests\Controller\TestAbstractController;
 use Tholcomb\Symple\Http\Tests\Controller\TestControllerA;
@@ -66,9 +67,14 @@ class HttpTest extends TestCase {
 		$c->register(new TwigProvider());
 		TwigProvider::addTemplateDir($c, __DIR__ . '/templates/');
 		$loaded = false;
+		$urlLoaded = false;
 		$c->extend(TwigProvider::KEY_ENVIRONMENT, function (Environment $env) use (&$loaded) {
 			$loaded = true;
 			return $env;
+		});
+		$c->extend(HttpProvider::KEY_URL_GENERATOR, function (UrlGeneratorInterface $url) use (&$urlLoaded) {
+			$urlLoaded = true;
+			return $url;
 		});
 		HttpProvider::addController($c, TestAbstractController::class, function () {
 			return new TestAbstractController();
@@ -76,12 +82,18 @@ class HttpTest extends TestCase {
 
 		$res = HttpProvider::getKernel($c)->handle(Request::create('/abstract/json'));
 		$this->assertFalse($loaded, 'Twig loaded early');
+		$this->assertFalse($urlLoaded, 'UrlGenerator loaded early');
 		$this->assertInstanceOf(JsonResponse::class, $res, 'Did not get JsonResponse');
 
 		$arg = random_int(0, 9);
 		$res = HttpProvider::getKernel($c)->handle(Request::create("/abstract/{$arg}"));
 		$this->assertEquals($arg, $res->getContent(), 'Did not get arg');
 		$this->assertTrue($loaded, 'Twig supposedly not loaded');
+
+		$url = '/abstract/urlGen';
+		$res = HttpProvider::getKernel($c)->handle(Request::create($url));
+		$this->assertEquals(json_encode($url), $res->getContent(), 'Did not get correct URL');
+		$this->assertTrue($urlLoaded, 'UrlGenerator supposedly not loaded');
 	}
 
 	public function testAbstractControllerMissingTwig()
