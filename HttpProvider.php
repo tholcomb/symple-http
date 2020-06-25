@@ -30,7 +30,9 @@ use Symfony\Component\Routing\Loader\AnnotationDirectoryLoader;
 use Symfony\Component\Routing\Matcher\UrlMatcher;
 use Symfony\Component\Routing\RequestContext;
 use Symfony\Component\Routing\RouteCollection;
+use Tholcomb\Symple\Console\ConsoleProvider;
 use Tholcomb\Symple\Core\AbstractProvider;
+use Tholcomb\Symple\Core\Cache\SympleCacheContainer;
 use Tholcomb\Symple\Core\Symple;
 use Tholcomb\Symple\Http\Event\HttpEventProvider;
 use Tholcomb\Symple\Logger\LoggerProvider;
@@ -123,7 +125,22 @@ class HttpProvider extends AbstractProvider {
 			return new Session();
 		};
 
+		$c['http.symple_cache'] = function ($c) {
+			$loc = new ServiceLocator($c, ['http.routes']);
+			return new SympleDoctrineCache($c['http.annotation_cache'], function () use ($loc) {
+				$loc->get('http.routes');
+			});
+		};
+
 		$c['http.error_file'] = __DIR__ . '/html/default_error.html';
+
+		if (exists_and_registered(ConsoleProvider::class, $c)) {
+			$c->extend(ConsoleProvider::KEY_CACHE_CONTAINER, function (SympleCacheContainer $caches, $c) {
+				$caches->addCache($c['http.symple_cache']);
+
+				return $caches;
+			});
+		}
 	}
 
 	public static function getKernel(Container $c): HttpKernel
