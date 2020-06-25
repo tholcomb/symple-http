@@ -16,6 +16,7 @@ use Doctrine\Common\Annotations\CachedReader;
 use Doctrine\Common\Cache\ArrayCache;
 use Pimple\Container;
 use Pimple\Exception\FrozenServiceException;
+use Pimple\Psr11\ServiceLocator;
 use Symfony\Component\Config\Loader\LoaderInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RequestStack;
@@ -193,10 +194,14 @@ class HttpProvider extends AbstractProvider {
 
 	private static function injectAbstractController(Container $c, AbstractController $ctrl): void
 	{
+		$services = ['url' => self::KEY_URL_GENERATOR];
+		$loc = null;
 		if (exists_and_registered(TwigProvider::class, $c)) {
-			$ctrl->setTwig(function () use ($c) { return TwigProvider::getEnvironment($c); });
+			$services['twig'] = TwigProvider::KEY_ENVIRONMENT;
+			$ctrl->setTwig(function () use (&$loc) { return $loc->get('twig'); });
 		}
-		$ctrl->setUrlGenerator(function () use ($c) { return $c[self::KEY_URL_GENERATOR]; });
+		$ctrl->setUrlGenerator(function () use (&$loc) { return $loc->get('url'); });
+		$loc = new ServiceLocator($c, $services);
 	}
 
 	public static function addController(Container $c, string $class, callable $definition): void
@@ -221,8 +226,9 @@ class HttpProvider extends AbstractProvider {
 			return $ctrl;
 		});
 		$extension = function (LazyControllerResolver $resolver, Container $c) use ($class, $key) {
-			$resolver->addController($class, function () use ($c, $key) {
-				return $c[$key];
+			$loc = new ServiceLocator($c, ['ctrl' => $key]);
+			$resolver->addController($class, function () use ($loc) {
+				return $loc->get('ctrl');
 			});
 			return $resolver;
 		};
