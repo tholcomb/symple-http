@@ -35,6 +35,7 @@ use Tholcomb\Symple\Http\Event\HttpEventProvider;
 use Tholcomb\Symple\Logger\LoggerProvider;
 use Tholcomb\Symple\Twig\TwigProvider;
 use Tholcomb\Symple\Core\UnregisteredProviderException;
+use function Tholcomb\Symple\Core\exists_and_registered;
 
 class HttpProvider extends AbstractProvider {
 	public const KEY_KERNEL = 'http.kernel';
@@ -192,7 +193,7 @@ class HttpProvider extends AbstractProvider {
 
 	private static function injectAbstractController(Container $c, AbstractController $ctrl): void
 	{
-		if (class_exists(TwigProvider::class) && TwigProvider::isRegistered($c)) {
+		if (exists_and_registered(TwigProvider::class, $c)) {
 			$ctrl->setTwig(function () use ($c) { return TwigProvider::getEnvironment($c); });
 		}
 		$ctrl->setUrlGenerator(function () use ($c) { return $c[self::KEY_URL_GENERATOR]; });
