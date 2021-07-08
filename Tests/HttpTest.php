@@ -14,7 +14,10 @@ use PHPUnit\Framework\TestCase;
 use Pimple\Container;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
+use Tholcomb\Symple\Core\Symple;
+use Tholcomb\Symple\Core\Tests\ResetSymple;
 use Tholcomb\Symple\Http\HttpProvider;
 use Tholcomb\Symple\Http\Tests\Controller\TestAbstractController;
 use Tholcomb\Symple\Http\Tests\Controller\TestControllerA;
@@ -32,6 +35,24 @@ class HttpTest extends TestCase {
 		$c->register(new LoggerProvider());
 
 		return $c;
+	}
+
+	private function getContainerWithAbstract(): Container
+	{
+		$c = $this->getContainer();
+		HttpProvider::addController($c, TestAbstractController::class, function () {
+			return new TestAbstractController();
+		});
+		$c[HttpProvider::KEY_REQUEST] = function () {
+			return Request::create('/abstract/exception');
+		};
+
+		return $c;
+	}
+
+	protected function tearDown(): void
+	{
+		ResetSymple::reset();
 	}
 
 	public function testAddController()
@@ -107,10 +128,7 @@ class HttpTest extends TestCase {
 
 	public function testRun()
 	{
-		$c = $this->getContainer();
-		HttpProvider::addController($c, TestAbstractController::class, function () {
-			return new TestAbstractController();
-		});
+		$c = $this->getContainerWithAbstract();
 		$c[HttpProvider::KEY_REQUEST] = function () {
 			return Request::create('/abstract/json');
 		};
@@ -118,5 +136,50 @@ class HttpTest extends TestCase {
 		HttpProvider::run($c);
 		$res = ob_get_clean();
 		$this->assertEquals(json_encode('data'), $res);
+	}
+
+	public function testException()
+	{
+		ResetSymple::reset();
+		$c = $this->getContainerWithAbstract();
+		$skipLog = !is_writable('/tmp');
+		if ($skipLog) {
+			$this->addWarning('/tmp not writable. skipping log test.');
+		} else {
+			$c['logger.path'] = '/tmp/' . uniqid('httpException_');
+		}
+		$res = HttpProvider::getKernel($c)->handle(HttpProvider::getRequest($c));
+		$this->assertSame(403, $res->getStatusCode());
+		if (!$skipLog) {
+			$this->assertStringContainsString('AccessDeniedHttpException', file_get_contents($c['logger.path']));
+			unlink($c['logger.path']);
+		}
+	}
+
+	public function testExceptionDebug()
+	{
+		ResetSymple::reset();
+		Symple::enableDebug();
+		$c = $this->getContainerWithAbstract();
+
+		$this->expectException(AccessDeniedHttpException::class);
+		HttpProvider::getKernel($c)->handle(HttpProvider::getRequest($c));
+	}
+
+	public function testExceptionDebugJson()
+	{
+		ResetSymple::reset();
+		Symple::enableDebug();
+		$c = $this->getContainerWithAbstract();
+		$c->extend(HttpProvider::KEY_REQUEST, function (Request $req) {
+			$req->headers->set('Accept', 'application/json');
+
+			return $req;
+		});
+
+		ob_start();
+		HttpProvider::run($c);
+		$res = ob_get_clean();
+		$this->assertStringContainsString('AccessDeniedHttpException', $res);
 	}
 }

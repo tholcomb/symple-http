@@ -34,6 +34,7 @@ use Tholcomb\Symple\Console\ConsoleProvider;
 use Tholcomb\Symple\Core\AbstractProvider;
 use Tholcomb\Symple\Core\Cache\SympleCacheContainer;
 use Tholcomb\Symple\Core\Symple;
+use Tholcomb\Symple\Http\Event\ExceptionSubscriber;
 use Tholcomb\Symple\Http\Event\HttpEventProvider;
 use Tholcomb\Symple\Logger\LoggerProvider;
 use Tholcomb\Symple\Twig\TwigProvider;
@@ -52,6 +53,9 @@ class HttpProvider extends AbstractProvider {
 	{
 		parent::register($c);
 		$c->register(new HttpEventProvider());
+		HttpEventProvider::addSubscriber($c, ExceptionSubscriber::class, function ($c) {
+			return new ExceptionSubscriber(LoggerProvider::getLogger($c));
+		});
 
 		$c[self::KEY_KERNEL] = function ($c) {
 			return new HttpKernel($c['http.event_dispatcher'], $c['http.controller_resolver'], $c['http.request_stack']);
