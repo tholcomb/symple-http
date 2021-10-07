@@ -22,6 +22,7 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\Session\Session;
+use Symfony\Component\HttpKernel\Controller\ArgumentResolver;
 use Symfony\Component\HttpKernel\EventListener\RouterListener;
 use Symfony\Component\HttpKernel\HttpKernel;
 use Symfony\Component\HttpKernel\HttpKernelInterface;
@@ -58,7 +59,7 @@ class HttpProvider extends AbstractProvider {
 		});
 
 		$c[self::KEY_KERNEL] = function ($c) {
-			return new HttpKernel($c['http.event_dispatcher'], $c['http.controller_resolver'], $c['http.request_stack']);
+			return new HttpKernel($c['http.event_dispatcher'], $c['http.controller_resolver'], $c['http.request_stack'], $c['http.argument_resolver']);
 		};
 
 		$c[self::KEY_DISPATCHER] = function ($c) { // EventDispatcherInterface
@@ -110,6 +111,10 @@ class HttpProvider extends AbstractProvider {
 
 		$c['http.request_stack'] = function () {
 			return new RequestStack();
+		};
+
+		$c['http.argument_resolver'] = function () {
+			return new ArgumentResolver();
 		};
 
 		$c['http.url_matcher'] = function ($c) {
